@@ -11,6 +11,7 @@ library('class')
 library('ggpubr') # dev version from kassambara/ggpubr
 library('cowplot') # dev version from wilkelab/cowplot
 library('pheatmap')
+library('mixOmics') # for PLS analyses
 
 
 
