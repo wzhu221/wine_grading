@@ -14,10 +14,6 @@ os.chdir('C:/Users/Administrator/Dropbox/Paper 1/Python')
 # ------------------------------------------------------------------
 ## Allow image to be output to a separate window.
 %matplotlib qt
-# ------------------------------------------------------------------
-## Add GraphViz to PATH ###
-os.environ["PATH"] += os.pathsep + '/usr/local/Cellar/graphviz/2.44.1/bin'
-
 
 
 
@@ -269,7 +265,7 @@ print(xgbcrossval.mean()*100, xgbcrossval.std()*100)
 '''
 !!!WARNING!!!
 ===============================================================
-DUE TO THE STOCHIASTIC NATURE OF THE ANN TRAINING PROCESS, THE VALUES CALCULATED
+DUE TO THE STOCHASTIC NATURE OF THE ANN TRAINING PROCESS, THE VALUES CALCULATED
 FOR ANN MAY OR MAY NOT BE ENTIRELY REPRODUCIBLE SHOULD THE SAME CODE BE RUN
 FOR ANOTHER TIME.
 
@@ -284,6 +280,23 @@ adamoptimise = keras.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilo
 # ------------------------------------------------------------------
 ## Compile the ANN model
 dl_model.compile(loss='categorical_crossentropy', optimizer=adamoptimise, metrics=['accuracy'])
+# ------------------------------------------------------------------
+## Calculate cross validation accuracy
+kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
+cvscores = []
+for train, test in kfold.split(X, y):
+	# One-hot encode gradings
+    cat_y_train = to_categorical(y[train], num_classes=3)
+    cat_y_test = to_categorical(y[test], num_classes=3)
+    # Silently fit the ANN model (without epoch outputs)
+    dl_model.fit(X.iloc[train], cat_y_train, epochs=7500, batch_size=32, verbose=0)
+    # Evaluate the model
+    scores = dl_model.evaluate(X.iloc[test], cat_y_test, verbose=0)
+    # Print accuracy scores to list
+    print("%s: %.2f%%" % (dl_model.metrics_names[1], scores[1]*100))
+    cvscores.append(scores[1] * 100)
+# Print mean and standard deviation for accuracy scores
+print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
 # ------------------------------------------------------------------
 ## Train the ANN model
 dl_history = dl_model.fit(X_train.values, cat_y_train, epochs=7500, batch_size=32)
@@ -328,44 +341,6 @@ tf.keras.models.save_model(dl_model,
                            'C:/Users/Administrator/Dropbox/Paper 1/Python',
                            include_optimizer=True,
                            overwrite=True)
-# ------------------------------------------------------------------
-## Calculate cross validation accuracy
-kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
-cvscores = []
-for train, test in kfold.split(X, y):
-	# One-hot encode gradings
-    cat_y_train = to_categorical(y[train], num_classes=3)
-    cat_y_test = to_categorical(y[test], num_classes=3)
-    # Silently fit the ANN model (without epoch outputs)
-    dl_model.fit(X.iloc[train], cat_y_train, epochs=7500, batch_size=32, verbose=0)
-    # Evaluate the model
-    scores = dl_model.evaluate(X.iloc[test], cat_y_test, verbose=0)
-    # Print accuracy scores to list
-    print("%s: %.2f%%" % (dl_model.metrics_names[1], scores[1]*100))
-    cvscores.append(scores[1] * 100)
-# Print mean and standard deviation for accuracy scores
-print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
-
-
-
-
-
-
-dl_auc = tf.keras.metrics.AUC(y_test, dl_y_pred).all()
-
-
-.result().numpy()
-dl_auc.result().numpy()
-
-
-
-
-
-wine_grades = [0,1,2]
-
-
-
-
 
 ### LIME explainer ###
 ## ============================================================ ##
@@ -387,79 +362,3 @@ show_lime_plots()
 xgb_lime.as_html(labels=[0,1,2])
 
 html = xgb_lime.save_to_file('123.html',labels=wine_grades)
-
-
-
-gnb_model = gnb()
-
-gnb_model.fit(X_train, y_train)
-
-gnb_y_pred = gnb_model.predict(X_test) 
-gnb_y_pred_prob = gnb_model.predict_proba(X_test) 
-gnb_predictions = [round(value) for value in gnb_y_pred]
-gnb_accuracy = accuracy_score(y_test, gnb_predictions)
-print("Gaussian_Naive_Bayes_Accuracy: %.2f%%" % (gnb_accuracy * 100.0)) 
-# -----------------------------------------------------------
-gnb_roc = roc_auc_score(y_test, gnb_y_pred_prob multi_class='ovr')
-print(gnb_roc)
-
-print(gnb_model)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import graphviz
-from dtreeviz.models.xgb_decision_tree import ShadowXGBDTree
-from dtreeviz import trees
-
-random_state = 1234
-dataset = pd.read_csv("./titanic.csv")
-# Fill missing values for Age
-dataset.fillna({"Age":dataset.Age.mean()}, inplace=True)
-# Encode categorical variables
-dataset["Sex_label"] = dataset.Sex.astype("category").cat.codes
-dataset["Cabin_label"] = dataset.Cabin.astype("category").cat.codes
-dataset["Embarked_label"] = dataset.Embarked.astype("category").cat.codes
-features = ["Pclass", "Age", "Fare", "Sex_label", "Cabin_label", "Embarked_label"]
-features1 = list(X_train.columns)
-target1 = 'Grade'
-target = "Survived"
-
-dtrain = xgboost.DMatrix(dataset[features], dataset[target])
-dtrain1 = xgboost.DMatrix(X_train, y_train)
-params = {"max_depth":3, "eta":0.05, "objective":"multi:softmax", 
-          "subsample":1, "num_class": 3}
-xgb_model = xgboost.train(params=params, dtrain=dtrain1, num_boost_round=8)
-
-d = dataset[features + [target]]
-d_matrix = xgboost.DMatrix(d)
-xgb_shadow = ShadowXGBDTree(xgb_model, 1, X_train, y_train, features1, target1, class_names=['UP', 'SP', 'P'])
-trees.dtreeviz(xgb_shadow)
-trees.dtreeviz(xgb_model, d[features], d[target], features, target, class_names=[0, 1], tree_index=1,
-               fontname="Open Sans")
-
-import os
-os.environ["PATH"] += os.pathsep + '/usr/local/Cellar/graphviz/2.44.1/bin'
