@@ -1,6 +1,6 @@
 ### Welcome
 
-The python code was used to create six different prediction models for wine quality gradings based on the SHS-GC-IMS results, as reported in this [peer-review journal article](https://pubs.acs.org/doi/10.1021/acs.jafc.0c07899). 
+The python code was used to create six different prediction models for wine quality gradings based on the SHS-GC-IMS results, as reported in this [peer-reviewed journal article](https://pubs.acs.org/doi/10.1021/acs.jafc.0c07899). 
 
 ### Conditions of use
 
